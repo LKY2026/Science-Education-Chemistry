@@ -208,11 +208,11 @@
             <div class="hint-box">
                 <strong>How to read the Spikes and Slopes at t=30s:</strong>
                 <ul>
-                    <li><span class="species-n2">Blue Line = [N₂] (Initial: 20 cm³)</span>, <span class="species-h2">Red Line = [H₂] (Initial: 60 cm³)</span>, and <span class="species-nh3">Green Line = [NH₃] (Initial: 40 cm³)</span>.</li>
-                    <li><strong>Concentration Spikes:</strong> If you intentionally add a specific gas, you will see exactly <strong>one sharp vertical spike</strong> at t=30s for that species only. The others will react gradually with smooth slopes following Le Chatelier's Principle.</li>
-                    <li><strong>Pressure Spikes:</strong> If you increase pressure (or halve the volume), you will see <strong>three simultaneous upward spikes</strong> at t=30s because decreasing the volume instantly concentrates all gaseous species relative to their volume space. Notice that $[H_2]$ spikes higher because it has the largest initial volume component ($60\text{ cm}^3$)!</li>
-                    <li><strong>Temperature Transitions:</strong> Adjusting the temperature causes <strong>zero vertical spikes</strong>. All three lines transition into smooth, steady curves starting at t=30s because temperature shifts the equilibrium constant ($K_c$) dynamically without sudden physical volume injections.</li>
-                    <li><strong>Catalyst Impact:</strong> Changing the catalyst yields **no changes** on the concentration graph because a catalyst accelerates both forward and backward reactions equally, leaving the final equilibrium position unchanged. Look at the lower *Energy Profile Path* window to observe how it alters the activation energy ($E_a$).</li>
+                    <li><span class="species-n2">Blue Line = [N₂] (Initial: 20 cm³)</span>, <span class="species-h2">Red Line = [H₂] (Initial: 60 cm³)</span>, and <span class="species-nh3">Green Line = [NH₃] (Initial: 40 cm³)</span></li>
+                    <li><strong>Concentration Spikes:</strong> If you intentionally add a specific gas, you will see exactly <strong>one sharp vertical spike</strong> at t=30s for that species only. The line will then gradually re-equilibrate after the perturbation.</li>
+                    <li><strong>Pressure Spikes:</strong> If you increase pressure (or halve the volume), you will see <strong>three simultaneous upward spikes</strong> at t=30s because decreasing the volume increases all concentrations proportionally. Afterwards, the system shifts toward products (NH₃ increases further while N₂ and H₂ decrease).</li>
+                    <li><strong>Temperature Transitions:</strong> Adjusting the temperature causes <strong>zero vertical spikes</strong>. All three lines transition into smooth, steady curves starting from t=30s. Increasing temperature favors reactants (exothermic reverse reaction); decreasing temperature favors products.</li>
+                    <li><strong>Catalyst Impact:</strong> Changing the catalyst yields <strong>no changes</strong> on the concentration graph because a catalyst accelerates both forward and backward reactions equally, reaching equilibrium faster but at the same overall position.</li>
                 </ul>
             </div>
         </div>
@@ -284,9 +284,9 @@
                     let currentH2 = instantH2 - (3 * netShift * factor);
                     let currentNH3 = instantNH3 + (2 * netShift * factor);
 
-                    dataN2.push(Math.max(0, currentN2).toFixed(1));
-                    dataH2.push(Math.max(0, currentH2).toFixed(1));
-                    dataNH3.push(Math.max(0, currentNH3).toFixed(1));
+                    dataN2.push(Math.max(0, parseFloat(currentN2.toFixed(1))));
+                    dataH2.push(Math.max(0, parseFloat(currentH2.toFixed(1))));
+                    dataNH3.push(Math.max(0, parseFloat(currentNH3.toFixed(1))));
                 }
             }
 
@@ -317,8 +317,8 @@
                     options: {
                         responsive: true,
                         scales: {
-                            x: { title: { display: true, text: 'Time (seconds)' } },
-                            y: { title: { display: true, text: 'Gas Amount (cm³)' }, min: 0, max: 150 }
+                            x: { ticks: { display: true } },
+                            y: { min: 0, max: 150, ticks: { display: true } }
                         },
                         plugins: {
                             legend: { position: 'top' }
@@ -360,7 +360,7 @@
                     options: {
                         responsive: true,
                         scales: {
-                            y: { display: true, title: { display: true, text: 'Energy (kJ)' }, min: 0, max: 180 }
+                            y: { display: true, min: 0, max: 180, ticks: { display: true } }
                         }
                     }
                 });
