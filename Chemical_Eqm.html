@@ -3,590 +3,402 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chemical Equilibrium & Le Chatelier's Principle</title>
-    
-    <!-- Load Tailwind CSS for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Load React and ReactDOM -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    
-    <!-- Load Babel to compile JSX in the browser -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <title>Haber Process Interactive Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --n2-color: #3498db;
+            --h2-color: #e74c3c;
+            --nh3-color: #2ecc71;
+            --danger: #e74c3c;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 { color: var(--primary); margin-bottom: 5px; }
+        .equation { font-size: 1.2rem; font-weight: bold; color: #555; background: #e8ecef; display: inline-block; padding: 10px 20px; border-radius: 5px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .full-width { grid-column: 1 / -1; }
+
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; color: var(--primary); }
+        
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eef2f5;
+            border-radius: 6px;
+            background: #fafbfc;
+        }
+
+        .control-group h3 { margin-top: 0; font-size: 1.1rem; color: #444; }
+
+        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem;}
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        input[type="range"] { flex: 1; }
+        .value-display { min-width: 50px; text-align: right; font-weight: bold; color: var(--accent); }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+
+        .btn-reset {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-reset:hover {
+            background-color: #34495e;
+        }
+
+        .hint-box {
+            background-color: #e8f4fd;
+            border-left: 5px solid var(--accent);
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .hint-box ul { margin: 5px 0 0 20px; padding: 0; }
+        .hint-box li { margin-bottom: 8px; }
+
+        .species-n2 { color: var(--n2-color); font-weight: bold; }
+        .species-h2 { color: var(--h2-color); font-weight: bold; }
+        .species-nh3 { color: var(--nh3-color); font-weight: bold; }
+
+        canvas { background: #fff; max-height: 400px; }
+    </style>
 </head>
-<body class="bg-slate-50">
-    <div id="root"></div>
+<body>
 
-    <script type="text/babel">
-        const { useState } = React;
+    <header>
+        <h1>Haber Process Interactive Simulator</h1>
+        <div class="equation">N₂(g) + 3H₂(g) ⇌ 2NH₃(g) &nbsp;&nbsp; ΔH = -92 kJ mol⁻¹</div>
+    </header>
 
-        // --- SVG Icons ---
-        const BookOpen = ({ className }) => (
-            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-        );
-        const Beaker = ({ className }) => (
-            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4.54 11.07A9 9 0 0 0 12 20h8"></path>
-                <path d="M7 14.66V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-5.34"></path>
-                <path d="M3 5h18v7a9 9 0 0 1-9 9 9 9 0 0 1-9-9V5Z"></path>
-            </svg>
-        );
-        const Maximize = ({ className }) => (
-            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-            </svg>
-        );
-        const ThermometerSun = ({ className }) => (
-            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 9a6 6 0 0 0-9-5.97"></path>
-                <circle cx="12" cy="17" r="5"></circle>
-                <path d="M12 1v6m4.22-7.22-4.24 4.24m5.96 1.96 4.24-4.24M20 12h6m-7.22 4.22 4.24 4.24"></path>
-            </svg>
-        );
-        const FastForward = ({ className }) => (
-            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="13 6 20 12 13 18 13 6"></polygon>
-                <polygon points="4 6 11 12 4 18 4 6"></polygon>
-            </svg>
-        );
-        const Info = ({ className }) => (
-            <svg className={className} xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 16v-4M12 8h.01"></path>
-            </svg>
-        );
-
-        // --- Main Application ---
-        const EquilibriumLesson = () => {
-            const [activeTab, setActiveTab] = useState('intro');
-
-            const tabs = [
-                { id: 'intro', label: 'Introduction', icon: BookOpen },
-                { id: 'concentration', label: 'Concentration', icon: Beaker },
-                { id: 'pressure', label: 'Pressure', icon: Maximize },
-                { id: 'temperature', label: 'Temperature', icon: ThermometerSun },
-                { id: 'catalyst', label: 'Catalyst', icon: FastForward },
-            ];
-
-            return (
-                <div className="min-h-screen p-4 md:p-8 font-sans text-slate-800">
-                    <div className="max-w-6xl mx-auto">
-                        <header className="mb-8 text-center md:text-left">
-                            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
-                                Chemical Equilibrium & Le Chatelier's Principle
-                            </h1>
-                            <p className="text-lg text-slate-600">
-                                Interactive Teaching Dashboard for Secondary Chemistry
-                            </p>
-                        </header>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                            <nav className="lg:col-span-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-3">
-                                    Disturbance Factors
-                                </h2>
-                                <div className="space-y-2">
-                                    {tabs.map((tab) => {
-                                        const Icon = tab.icon;
-                                        const isActive = activeTab === tab.id;
-                                        return (
-                                            <button
-                                                key={tab.id}
-                                                onClick={() => setActiveTab(tab.id)}
-                                                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 text-left font-medium ${
-                                                    isActive 
-                                                        ? 'bg-blue-600 text-white shadow-md' 
-                                                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                                                }`}
-                                            >
-                                                <Icon className={isActive ? 'text-blue-100' : 'text-slate-400'} />
-                                                <span>{tab.label}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                <div className="mt-8 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                                    <h3 className="text-sm font-bold text-slate-700 mb-2">Reference Reaction: Haber Process</h3>
-                                    <div className="font-mono text-sm font-semibold bg-white p-2 rounded border border-slate-200 text-center mb-2 text-slate-800">
-                                        N₂(g) + 3H₂(g) ⇌ 2NH₃(g)
-                                    </div>
-                                    <p className="text-xs text-slate-500 text-center">ΔH = -92 kJ/mol (Exothermic)</p>
-                                </div>
-                            </nav>
-
-                            <main className="lg:col-span-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                {activeTab === 'intro' && <IntroSection />}
-                                {activeTab === 'concentration' && <ConcentrationSection />}
-                                {activeTab === 'pressure' && <PressureSection />}
-                                {activeTab === 'temperature' && <TemperatureSection />}
-                                {activeTab === 'catalyst' && <CatalystSection />}
-                            </main>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const IntroSection = () => (
-            <div className="p-8">
-                <h2 className="text-2xl font-bold mb-6 flex items-center">
-                    <BookOpen className="mr-3 text-blue-600 inline-block" /> Lesson Objectives & Rules
-                </h2>
+    <div class="container">
+        
+        <div class="card">
+            <h2>Simulation Controls</h2>
+            <p style="font-size: 0.9rem; color: #666; margin-top: -10px;">Adjust sliders to see updates applied instantly at <strong>t = 30s</strong>.</p>
+            
+            <div class="control-group">
+                <h3>Part A: Effect of Concentration (at t=30s)</h3>
                 
-                <div className="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-r-lg mb-8">
-                    <h3 className="text-lg font-bold text-blue-900 mb-2">Le Chatelier's Principle</h3>
-                    <p className="text-blue-800 leading-relaxed">
-                        "If a dynamic equilibrium is disturbed by changing the conditions, the position of equilibrium shifts to counteract the change to re-establish an equilibrium."
-                    </p>
+                <label>Add/Remove N₂ Gas</label>
+                <div class="slider-container">
+                    <input type="range" id="param-n2" min="-15" max="30" step="5" value="0">
+                    <span class="value-display" id="val-n2">0 cm³</span>
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-800 mb-4">How to Deduce the Disturbance from a Graph</h3>
-                <p className="text-slate-600 mb-6">
-                    When teaching students to read concentration vs. time graphs, tell them to look specifically at the <strong>moment of disturbance</strong> (t=30 in our examples).
-                </p>
+                <label>Add/Remove H₂ Gas</label>
+                <div class="slider-container">
+                    <input type="range" id="param-h2" min="-30" max="30" step="5" value="0">
+                    <span class="value-display" id="val-h2">0 cm³</span>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-slate-50 p-5 rounded-lg border border-slate-200 shadow-sm">
-                        <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-bold text-xl mb-3">1</div>
-                        <h4 className="font-bold text-slate-800 mb-2">Spike in ONE line</h4>
-                        <p className="text-sm text-slate-600">A sudden vertical jump or drop in a single substance means <strong>Concentration</strong> was changed (substance added or removed).</p>
-                    </div>
-                    
-                    <div className="bg-slate-50 p-5 rounded-lg border border-slate-200 shadow-sm">
-                        <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-xl mb-3">2</div>
-                        <h4 className="font-bold text-slate-800 mb-2">Spike in ALL lines</h4>
-                        <p className="text-sm text-slate-600">A sudden vertical jump or drop in all gaseous substances simultaneously indicates a change in <strong>Volume/Pressure</strong>.</p>
-                    </div>
-
-                    <div className="bg-slate-50 p-5 rounded-lg border border-slate-200 shadow-sm">
-                        <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold text-xl mb-3">3</div>
-                        <h4 className="font-bold text-slate-800 mb-2">NO spikes, only curves</h4>
-                        <p className="text-sm text-slate-600">If all lines change gradually with no vertical jumps, the disturbance was a change in <strong>Temperature</strong>.</p>
-                    </div>
+                <label>Add NH₃ Gas</label>
+                <div class="slider-container">
+                    <input type="range" id="param-nh3" min="0" max="30" step="5" value="0">
+                    <span class="value-display" id="val-nh3">0 cm³</span>
                 </div>
             </div>
-        );
 
-        const ConcentrationSection = () => {
-            const [addedN2, setAddedN2] = useState(4);
-            const [addedH2, setAddedH2] = useState(0);
-            const [addedNH3, setAddedNH3] = useState(0);
-            
-            // Positive x = forward shift (right), Negative x = reverse shift (left)
-            // Added H2 has a scaled effect on the shift magnitude to maintain the 1:3:2 visual balance
-            const x = (addedN2 * 0.25) + (addedH2 * (0.25 / 3)) - (addedNH3 * 0.25);
-
-            const lines = [
-                { id: 'N2', color: '#ef4444', label: '[N₂]', start: 2, jump: 2 + addedN2, end: 2 + addedN2 - x },
-                { id: 'H2', color: '#3b82f6', label: '[H₂]', start: 4, jump: 4 + addedH2, end: 4 + addedH2 - 3 * x },
-                { id: 'NH3', color: '#10b981', label: '[NH₃]', start: 2, jump: 2 + addedNH3, end: 2 + addedNH3 + 2 * x },
-            ];
-
-            // Dynamically generate the string of which gases spiked
-            let spikedGases = [];
-            if (addedN2 > 0) spikedGases.push('[N₂] spiked up');
-            if (addedN2 < 0) spikedGases.push('[N₂] dropped down');
-            if (addedH2 > 0) spikedGases.push('[H₂] spiked up');
-            if (addedH2 < 0) spikedGases.push('[H₂] dropped down');
-            if (addedNH3 > 0) spikedGases.push('[NH₃] spiked up');
-            if (addedNH3 < 0) spikedGases.push('[NH₃] dropped down');
-            
-            const spikeText = spikedGases.length === 0 
-                ? "There is no disturbance." 
-                : `The following instantaneous changes occurred: ${spikedGases.join(', ')}.`;
-
-            // Helper to clean up long decimal numbers for the teacher guide
-            const formatNum = (num) => Number(num.toFixed(2));
-
-            return (
-                <div className="flex flex-col h-full">
-                    <div className="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-start flex-wrap gap-4">
-                        <div>
-                            <h2 className="text-2xl font-bold mb-2">Effect of Concentration</h2>
-                            <p className="text-slate-600">Disturbance at t=30: <strong>Addition or removal of gases.</strong></p>
-                        </div>
-                        <div className="flex flex-col items-end bg-white p-3 rounded shadow-sm border border-slate-200">
-                            <label className="text-sm font-bold text-slate-700 mb-1">
-                                Change in N₂: {addedN2 > 0 ? '+' : ''}{addedN2} mol/L
-                            </label>
-                            <input 
-                                type="range" 
-                                min="-1.5" 
-                                max="5" 
-                                step="0.5" 
-                                value={addedN2} 
-                                onChange={(e) => setAddedN2(parseFloat(e.target.value))}
-                                className="w-48 accent-red-500 mb-3"
-                            />
-                            <label className="text-sm font-bold text-slate-700 mb-1">
-                                Change in H₂: {addedH2 > 0 ? '+' : ''}{addedH2} mol/L
-                            </label>
-                            <input 
-                                type="range" 
-                                min="-3" 
-                                max="5" 
-                                step="0.5" 
-                                value={addedH2} 
-                                onChange={(e) => setAddedH2(parseFloat(e.target.value))}
-                                className="w-48 accent-blue-500 mb-3"
-                            />
-                            <label className="text-sm font-bold text-slate-700 mb-1">
-                                Change in NH₃: {addedNH3 > 0 ? '+' : ''}{addedNH3} mol/L
-                            </label>
-                            <input 
-                                type="range" 
-                                min="-1.5" 
-                                max="5" 
-                                step="0.5" 
-                                value={addedNH3} 
-                                onChange={(e) => setAddedNH3(parseFloat(e.target.value))}
-                                className="w-48 accent-emerald-500"
-                            />
-                        </div>
-                    </div>
-                    <div className="p-6 flex-grow flex flex-col items-center justify-center bg-white">
-                        <ConcentrationGraph lines={lines} yMax={12} />
-                        <div className="w-full mt-8 bg-amber-50 p-5 rounded-lg border border-amber-200 text-amber-900">
-                            <h4 className="font-bold mb-2 flex items-center"><Info className="mr-2 inline-block" /> Teacher's Deduction Guide:</h4>
-                            <ul className="list-disc pl-5 space-y-2 text-sm">
-                                <li><strong>The Visual Clue:</strong> Point out the sudden vertical change(s) at t=30. {spikeText}</li>
-                                <li><strong>The Shift:</strong> 
-                                    {formatNum(x) > 0 && " To counteract the disturbance, the system shifts to the right (forward reaction)."}
-                                    {formatNum(x) < 0 && " To counteract the disturbance, the system shifts to the left (reverse reaction)."}
-                                    {formatNum(x) === 0 && " The disturbances cancel each other out perfectly; no net shift occurs."}
-                                </li>
-                                <li><strong>Stoichiometry Check:</strong> 
-                                    {formatNum(x) !== 0 ? (
-                                        <>
-                                            N₂ changes by {Math.abs(formatNum(x))} unit(s) ({formatNum(2 + addedN2)}→{formatNum(2 + addedN2 - x)}), 
-                                            H₂ changes by {Math.abs(formatNum(3 * x))} unit(s) ({formatNum(4 + addedH2)}→{formatNum(4 + addedH2 - 3 * x)}), and 
-                                            NH₃ changes by {Math.abs(formatNum(2 * x))} unit(s) ({formatNum(2 + addedNH3)}→{formatNum(2 + addedNH3 + 2 * x)}). 
-                                            This perfectly matches the 1:3:2 molar ratio of the balanced equation!
-                                        </>
-                                    ) : " Concentrations remain at their new disturbed levels since there is no net shift."}
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+            <div class="control-group">
+                <h3>Part B: Effect of Pressure / Volume</h3>
+                <label>Pressure Multiplier (Halving Volume doubles Pressure)</label>
+                <div class="slider-container">
+                    <input type="range" id="param-pressure" min="0.5" max="2.0" step="0.25" value="1.0">
+                    <span class="value-display" id="val-pressure">1.0x</span>
                 </div>
-            );
-        };
+            </div>
 
-        const PressureSection = () => {
-            const [pressureFactor, setPressureFactor] = useState(2);
-            const x = 0.5 * (pressureFactor - 1);
-
-            const lines = [
-                { id: 'N2', color: '#ef4444', label: '[N₂]', start: 2, jump: 2 * pressureFactor, end: 2 * pressureFactor - x },
-                { id: 'H2', color: '#3b82f6', label: '[H₂]', start: 3, jump: 3 * pressureFactor, end: 3 * pressureFactor - 3 * x },
-                { id: 'NH3', color: '#10b981', label: '[NH₃]', start: 1, jump: 1 * pressureFactor, end: 1 * pressureFactor + 2 * x },
-            ];
-
-            const formatNum = (num) => Number(num.toFixed(2));
-
-            return (
-                <div className="flex flex-col h-full">
-                    <div className="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center flex-wrap gap-4">
-                        <div>
-                            <h2 className="text-2xl font-bold mb-2">Effect of Pressure (Volume)</h2>
-                            <p className="text-slate-600">Disturbance at t=30: <strong>Pressure is multiplied by {pressureFactor}x.</strong></p>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <label className="text-sm font-bold text-slate-700 mb-1">
-                                Pressure Multiplier: {pressureFactor}x
-                            </label>
-                            <input 
-                                type="range" 
-                                min="0.5" 
-                                max="3" 
-                                step="0.1" 
-                                value={pressureFactor} 
-                                onChange={(e) => setPressureFactor(parseFloat(e.target.value))}
-                                className="w-48 accent-blue-600"
-                            />
-                        </div>
-                    </div>
-                    <div className="p-6 flex-grow flex flex-col items-center justify-center bg-white">
-                        <ConcentrationGraph lines={lines} yMax={10} />
-                        <div className="w-full mt-8 bg-amber-50 p-5 rounded-lg border border-amber-200 text-amber-900">
-                            <h4 className="font-bold mb-2 flex items-center"><Info className="mr-2 inline-block" /> Teacher's Deduction Guide:</h4>
-                            <ul className="list-disc pl-5 space-y-2 text-sm">
-                                <li><strong>The Visual Clue:</strong> ALL gas concentrations instantly jump vertically at t=30. Since pressure is multiplied by {pressureFactor}, all concentrations are multiplied by {pressureFactor}.</li>
-                                <li><strong>The Shift:</strong> 
-                                    {pressureFactor > 1 && " High pressure forces a shift to the side with fewer gas molecules. Reactants = 4 moles, Products = 2 moles. System shifts right."}
-                                    {pressureFactor < 1 && " Low pressure forces a shift to the side with more gas molecules. Reactants = 4 moles, Products = 2 moles. System shifts left."}
-                                    {pressureFactor === 1 && " No change in pressure, no shift."}
-                                </li>
-                                <li><strong>Stoichiometry Check:</strong> Reactants and products gradually re-adjust from their spiked points by {Math.abs(formatNum(x))}, {Math.abs(formatNum(3*x))}, and {Math.abs(formatNum(2*x))} respectively, maintaining the 1:3:2 ratio.</li>
-                            </ul>
-                        </div>
-                    </div>
+            <div class="control-group">
+                <h3>Part C: Effect of Temperature</h3>
+                <label>Temperature Change (ΔT)</label>
+                <div class="slider-container">
+                    <input type="range" id="param-temp" min="-20" max="20" step="5" value="0">
+                    <span class="value-display" id="val-temp">0°C</span>
                 </div>
-            );
-        };
+            </div>
 
-        const TemperatureSection = () => {
-            const [tempChange, setTempChange] = useState(50);
-            
-            // Exothermic reaction: +temp shifts left (negative x), -temp shifts right (positive x)
-            const x = -tempChange * 0.02; 
+            <div class="control-group">
+                <h3>Part D: Effect of a Catalyst</h3>
+                <label>Select Catalyst Type</label>
+                <select id="param-catalyst">
+                    <option value="none">No Catalyst</option>
+                    <option value="positive">Positive Catalyst (e.g., Iron)</option>
+                    <option value="negative">Negative Catalyst / Inhibitor</option>
+                </select>
+            </div>
 
-            const lines = [
-                { id: 'N2', color: '#ef4444', label: '[N₂]', start: 2, jump: 2, end: 2 - x },
-                { id: 'H2', color: '#3b82f6', label: '[H₂]', start: 4, jump: 4, end: 4 - 3 * x },
-                { id: 'NH3', color: '#10b981', label: '[NH₃]', start: 6, jump: 6, end: 6 + 2 * x },
-            ];
+            <button class="btn-reset" id="btn-reset">🔄 Reset Dashboard & Graph</button>
+        </div>
 
-            return (
-                <div className="flex flex-col h-full">
-                    <div className="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center flex-wrap gap-4">
-                        <div>
-                            <h2 className="text-2xl font-bold mb-2">Effect of Temperature</h2>
-                            <p className="text-slate-600">Disturbance at t=30: <strong>{tempChange > 0 ? "Temperature is increased" : tempChange < 0 ? "Temperature is decreased" : "No temperature change"}.</strong></p>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <label className="text-sm font-bold text-slate-700 mb-1">
-                                Temp Change (ΔT): {tempChange > 0 ? '+' : ''}{tempChange}°C
-                            </label>
-                            <input 
-                                type="range" 
-                                min="-50" 
-                                max="50" 
-                                step="5" 
-                                value={tempChange} 
-                                onChange={(e) => setTempChange(parseFloat(e.target.value))}
-                                className="w-48 accent-orange-500"
-                            />
-                        </div>
-                    </div>
-                    <div className="p-6 flex-grow flex flex-col items-center justify-center bg-white">
-                        <ConcentrationGraph lines={lines} yMax={10} />
-                        <div className="w-full mt-8 bg-amber-50 p-5 rounded-lg border border-amber-200 text-amber-900">
-                            <h4 className="font-bold mb-2 flex items-center"><Info className="mr-2 inline-block" /> Teacher's Deduction Guide:</h4>
-                            <ul className="list-disc pl-5 space-y-2 text-sm">
-                                <li><strong>The Visual Clue:</strong> There are <strong>NO vertical spikes</strong> at t=30. Changes only happen gradually. This is the hallmark of a temperature change.</li>
-                                <li><strong>The Shift:</strong> Forward reaction is exothermic (releases heat). 
-                                    {tempChange > 0 && " Increasing temperature forces the system to shift left (endothermic direction) to absorb the excess heat."}
-                                    {tempChange < 0 && " Decreasing temperature forces the system to shift right (exothermic direction) to replace the lost heat."}
-                                    {tempChange === 0 && " No change in temperature, so no shift."}
-                                </li>
-                                <li><strong>Stoichiometry Check:</strong> 
-                                    {tempChange !== 0 ? ` Changes occur gradually in the 1:3:2 ratio from their original equilibrium positions.` : " Concentrations remain flat."}
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <h2>Dynamic Equilibrium Graph</h2>
+                <div style="position: relative; width: 100%;">
+                    <canvas id="equilibriumChart"></canvas>
                 </div>
-            );
-        };
+            </div>
 
-        const CatalystSection = () => {
-            const [catalystType, setCatalystType] = useState('positive');
-
-            return (
-                <div className="flex flex-col h-full">
-                    <div className="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center flex-wrap gap-4">
-                        <div>
-                            <h2 className="text-2xl font-bold mb-2">Effect of a Catalyst</h2>
-                            <p className="text-slate-600">A catalyst alters the rate of reaching equilibrium, but <strong>does not change the position</strong>.</p>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <label className="text-sm font-bold text-slate-700 mb-1">
-                                Catalyst Type:
-                            </label>
-                            <select 
-                                value={catalystType} 
-                                onChange={(e) => setCatalystType(e.target.value)}
-                                className="w-56 p-2 border border-slate-300 rounded bg-white text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="positive">Positive Catalyst</option>
-                                <option value="none">No Catalyst</option>
-                                <option value="negative">Negative Catalyst (Inhibitor)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div className="p-6 flex-grow flex flex-col items-center justify-center bg-white">
-                        <EnergyProfileGraph type={catalystType} />
-                        <div className="w-full mt-8 bg-amber-50 p-5 rounded-lg border border-amber-200 text-amber-900">
-                            <h4 className="font-bold mb-2 flex items-center"><Info className="mr-2 inline-block" /> Teacher's Deduction Guide:</h4>
-                            <ul className="list-disc pl-5 space-y-2 text-sm">
-                                <li><strong>Energy Profile:</strong> 
-                                    {catalystType === 'positive' && " A positive catalyst lowers the activation energy (Ea) for BOTH the forward and reverse reactions by providing an alternative pathway."}
-                                    {catalystType === 'negative' && " A negative catalyst (inhibitor) raises the activation energy (Ea) by providing a higher-energy alternative pathway (or blocking the normal pathway)."}
-                                    {catalystType === 'none' && " This is the standard reaction pathway with no catalyst present."}
-                                </li>
-                                <li><strong>Position of Equilibrium:</strong> Because both forward and reverse rates {catalystType === 'negative' ? 'decrease' : 'increase'} by the exact same proportions, the equilibrium constant K remains unchanged, and the equilibrium position does not shift.</li>
-                                <li><strong>If shown on a Concentration vs Time graph:</strong> The curves would simply be {catalystType === 'negative' ? 'less steep and reach equilibrium later' : catalystType === 'positive' ? 'steeper and reach equilibrium faster' : 'unchanged'}.</li>
-                            </ul>
-                        </div>
-                    </div>
+            <div>
+                <h2>Energy Profile Path</h2>
+                <div style="position: relative; width: 100%;">
+                    <canvas id="energyChart" style="max-height: 180px;"></canvas>
                 </div>
-            );
-        };
+            </div>
+        </div>
 
-        const ConcentrationGraph = ({ lines, yMax }) => {
-            const getX = (t) => 50 + (t / 100) * 400; 
-            const getY = (v) => 250 - (v / yMax) * 200; 
+        <div class="card full-width">
+            <h2>💡 Graph Observation Guide & Hints</h2>
+            <div class="hint-box">
+                <strong>How to read the Spikes and Slopes at t=30s:</strong>
+                <ul>
+                    <li><span class="species-n2">Blue Line = [N₂] (Initial: 20 cm³)</span>, <span class="species-h2">Red Line = [H₂] (Initial: 60 cm³)</span>, and <span class="species-nh3">Green Line = [NH₃] (Initial: 40 cm³)</span>.</li>
+                    <li><strong>Concentration Spikes:</strong> If you intentionally add a specific gas, you will see exactly <strong>one sharp vertical spike</strong> at t=30s for that species only. The others will react gradually with smooth slopes following Le Chatelier's Principle.</li>
+                    <li><strong>Pressure Spikes:</strong> If you increase pressure (or halve the volume), you will see <strong>three simultaneous upward spikes</strong> at t=30s because decreasing the volume instantly concentrates all gaseous species relative to their volume space. Notice that $[H_2]$ spikes higher because it has the largest initial volume component ($60\text{ cm}^3$)!</li>
+                    <li><strong>Temperature Transitions:</strong> Adjusting the temperature causes <strong>zero vertical spikes</strong>. All three lines transition into smooth, steady curves starting at t=30s because temperature shifts the equilibrium constant ($K_c$) dynamically without sudden physical volume injections.</li>
+                    <li><strong>Catalyst Impact:</strong> Changing the catalyst yields **no changes** on the concentration graph because a catalyst accelerates both forward and backward reactions equally, leaving the final equilibrium position unchanged. Look at the lower *Energy Profile Path* window to observe how it alters the activation energy ($E_a$).</li>
+                </ul>
+            </div>
+        </div>
 
-            const generatePath = (start, jump, end) => {
-                const x0 = getX(0), y0 = getY(start);
-                const x1 = getX(30), y1 = getY(start);
-                const y2 = getY(jump); 
-                const x3 = getX(70), y3 = getY(end);
-                const x4 = getX(100), y4 = getY(end);
+    </div>
 
-                const dx = (x3 - x1) / 2;
-                const cp1x = x1 + dx;
-                const cp2x = x3 - dx;
+    <script>
+        // --- Initialization and Variables ---
+        const eqCanvas = document.getElementById('equilibriumChart').getContext('2d');
+        const energyCanvas = document.getElementById('energyChart').getContext('2d');
 
-                return `M ${x0} ${y0} L ${x1} ${y1} L ${x1} ${y2} C ${cp1x} ${y2}, ${cp2x} ${y3}, ${x3} ${y3} L ${x4} ${y4}`;
-            };
+        // Baselines matching user criteria
+        const baseN2 = 20;
+        const baseH2 = 60;
+        const baseNH3 = 40;
 
-            const yTicks = Array.from({ length: yMax + 1 }, (_, i) => i);
+        let eqChart;
+        let enChart;
 
-            return (
-                <div className="w-full max-w-2xl relative">
-                    <svg viewBox="0 0 500 300" className="w-full h-auto drop-shadow-sm font-sans">
-                        {yTicks.map(v => (
-                            <g key={v}>
-                                <line x1="50" y1={getY(v)} x2="450" y2={getY(v)} stroke="#f1f5f9" strokeWidth="1" />
-                                {v % 2 === 0 && <text x="40" y={getY(v) + 4} textAnchor="end" fontSize="10" fill="#64748b">{v}</text>}
-                            </g>
-                        ))}
+        // --- Core Math Simulation Logic ---
+        function generateSimulationData() {
+            const labels = [];
+            const dataN2 = [];
+            const dataH2 = [];
+            const dataNH3 = [];
 
-                        <line x1={getX(30)} y1="40" x2={getX(30)} y2="250" stroke="#cbd5e1" strokeDasharray="4 4" strokeWidth="2" />
-                        <line x1={getX(70)} y1="40" x2={getX(70)} y2="250" stroke="#cbd5e1" strokeDasharray="4 4" strokeWidth="2" />
-                        
-                        <text x={getX(15)} y="30" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#64748b">Initial Eq.</text>
-                        <text x={getX(50)} y="30" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#64748b">Disturbance & Shift</text>
-                        <text x={getX(85)} y="30" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#64748b">New Eq.</text>
+            // Grab element parameter inputs
+            const deltaN2 = parseFloat(document.getElementById('param-n2').value);
+            const deltaH2 = parseFloat(document.getElementById('param-h2').value);
+            const deltaNH3 = parseFloat(document.getElementById('param-nh3').value);
+            const pMult = parseFloat(document.getElementById('param-pressure').value);
+            const deltaT = parseFloat(document.getElementById('param-temp').value);
 
-                        <line x1="50" y1="250" x2="455" y2="250" stroke="#334155" strokeWidth="2" markerEnd="url(#arrow)" />
-                        <line x1="50" y1="250" x2="50" y2="35" stroke="#334155" strokeWidth="2" markerEnd="url(#arrow)" />
+            // Generate timeline array (0 to 60 seconds)
+            for (let t = 0; t <= 60; t++) {
+                labels.push(t + 's');
 
-                        <defs>
-                            <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse">
-                                <path d="M 0 0 L 6 3 L 0 6 z" fill="#334155" />
-                            </marker>
-                        </defs>
+                if (t < 30) {
+                    // Stable baseline pre-equilibrium requested: N2=20, H2=60, NH3=40
+                    dataN2.push(baseN2);
+                    dataH2.push(baseH2);
+                    dataNH3.push(baseNH3);
+                } else if (t === 30) {
+                    // The exact moment Le Chatelier stress gets introduced
+                    let instantN2 = baseN2 * pMult + deltaN2;
+                    let instantH2 = baseH2 * pMult + deltaH2;
+                    let instantNH3 = baseNH3 * pMult + deltaNH3;
+                    
+                    dataN2.push(Math.max(0, instantN2));
+                    dataH2.push(Math.max(0, instantH2));
+                    dataNH3.push(Math.max(0, instantNH3));
+                } else {
+                    // Gradual path moving towards new shifted equilibrium position
+                    let instantN2 = baseN2 * pMult + deltaN2;
+                    let instantH2 = baseH2 * pMult + deltaH2;
+                    let instantNH3 = baseNH3 * pMult + deltaNH3;
 
-                        <text x="250" y="285" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#334155">Time (s)</text>
-                        <text x="15" y="150" transform="rotate(-90 20 150)" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#334155">Concentration (mol/L)</text>
+                    // Compute shifted offsets dynamically 
+                    let shiftConc = (deltaN2 * 0.2) + (deltaH2 * 0.2) - (deltaNH3 * 0.3);
+                    let shiftPres = (pMult - 1.0) * 8; 
+                    let shiftTemp = -deltaT * 0.3; 
 
-                        {lines.map((line) => (
-                            <path
-                                key={line.id}
-                                d={generatePath(line.start, line.jump, line.end)}
-                                fill="none"
-                                stroke={line.color}
-                                strokeWidth="3.5"
-                                strokeLinejoin="round"
-                                strokeLinecap="round"
-                            />
-                        ))}
+                    let netShift = shiftConc + shiftPres + shiftTemp;
+                    
+                    // Progressive logarithmic curve transition towards steady state
+                    let factor = 1 - Math.exp(-(t - 30) / 6); 
 
-                        <g transform="translate(380, 50)">
-                            <rect width="60" height="75" fill="white" fillOpacity="0.9" rx="4" stroke="#e2e8f0" strokeWidth="1" />
-                            {lines.map((line, idx) => (
-                                <g key={line.id} transform={`translate(5, ${15 + idx * 20})`}>
-                                    <line x1="0" y1="0" x2="15" y2="0" stroke={line.color} strokeWidth="3" />
-                                    <text x="22" y="4" fontSize="12" fontWeight="bold" fill="#334155">{line.label}</text>
-                                </g>
-                            ))}
-                        </g>
-                    </svg>
-                </div>
-            );
-        };
+                    let currentN2 = instantN2 - (1 * netShift * factor);
+                    let currentH2 = instantH2 - (3 * netShift * factor);
+                    let currentNH3 = instantNH3 + (2 * netShift * factor);
 
-        const EnergyProfileGraph = ({ type }) => {
-            return (
-                <div className="w-full max-w-2xl relative">
-                    <svg viewBox="0 0 500 300" className="w-full h-auto drop-shadow-sm font-sans">
-                        <line x1="50" y1="260" x2="455" y2="260" stroke="#334155" strokeWidth="2" markerEnd="url(#arrow)" />
-                        <line x1="50" y1="260" x2="50" y2="40" stroke="#334155" strokeWidth="2" markerEnd="url(#arrow)" />
-                        
-                        <text x="250" y="295" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#334155">Reaction Coordinate</text>
-                        <text x="20" y="150" transform="rotate(-90 20 150)" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#334155">Potential Energy</text>
+                    dataN2.push(Math.max(0, currentN2).toFixed(1));
+                    dataH2.push(Math.max(0, currentH2).toFixed(1));
+                    dataNH3.push(Math.max(0, currentNH3).toFixed(1));
+                }
+            }
 
-                        <line x1="50" y1="160" x2="150" y2="160" stroke="#000" strokeWidth="2" strokeDasharray="4 4" />
-                        <line x1="350" y1="220" x2="450" y2="220" stroke="#000" strokeWidth="2" strokeDasharray="4 4" />
-                        <text x="100" y="180" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#334155">Reactants</text>
-                        <text x="400" y="240" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#334155">Products</text>
+            return { labels, dataN2, dataH2, dataNH3 };
+        }
 
-                        {/* Uncatalyzed Path */}
-                        <path d="M 100 160 C 150 160, 200 40, 250 40 C 300 40, 350 220, 400 220" fill="none" stroke="#ef4444" strokeWidth="3" />
-                        
-                        {/* Catalyzed Paths */}
-                        {type === 'positive' && (
-                            <path d="M 100 160 C 150 160, 200 120, 250 120 C 300 120, 350 220, 400 220" fill="none" stroke="#3b82f6" strokeWidth="3" strokeDasharray="6 6" />
-                        )}
-                        {type === 'negative' && (
-                            <path d="M 100 160 C 150 160, 200 10, 250 10 C 300 10, 350 220, 400 220" fill="none" stroke="#9333ea" strokeWidth="3" strokeDasharray="6 6" />
-                        )}
+        // --- Render Concentration Graphs ---
+        function updateEquilibriumChart() {
+            const simData = generateSimulationData();
 
-                        {/* Ea Uncatalyzed Arrow */}
-                        <line x1="250" y1="160" x2="250" y2="40" stroke="#ef4444" strokeWidth="1.5" markerEnd="url(#arrow-red)" markerStart="url(#arrow-red-start)" />
-                        <text x="240" y={type === 'negative' ? 100 : 100} textAnchor="end" fontSize="12" fontWeight="bold" fill="#ef4444">Ea (Uncatalyzed)</text>
+            if (eqChart) {
+                eqChart.data.labels = simData.labels;
+                eqChart.data.datasets[0].data = simData.dataN2;
+                eqChart.data.datasets[1].data = simData.dataH2;
+                eqChart.data.datasets[2].data = simData.dataNH3;
+                eqChart.update('none'); 
+            } else {
+                eqChart = new Chart(eqCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: simData.labels,
+                        datasets: [
+                            { label: '[N₂]', data: simData.dataN2, borderColor: '#3498db', borderWidth: 3, pointRadius: 0, fill: false },
+                            { label: '[H₂]', data: simData.dataH2, borderColor: '#e74c3c', borderWidth: 3, pointRadius: 0, fill: false },
+                            { label: '[NH₃]', data: simData.dataNH3, borderColor: '#2ecc71', borderWidth: 3, pointRadius: 0, fill: false }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: { title: { display: true, text: 'Time (seconds)' } },
+                            y: { title: { display: true, text: 'Gas Amount (cm³)' }, min: 0, max: 150 }
+                        },
+                        plugins: {
+                            legend: { position: 'top' }
+                        }
+                    }
+                });
+            }
+        }
 
-                        {/* Ea Positive Arrow */}
-                        {type === 'positive' && (
-                            <>
-                                <line x1="270" y1="160" x2="270" y2="120" stroke="#3b82f6" strokeWidth="1.5" markerEnd="url(#arrow-blue)" markerStart="url(#arrow-blue-start)" />
-                                <text x="280" y="145" textAnchor="start" fontSize="12" fontWeight="bold" fill="#3b82f6">Ea (Positive)</text>
-                            </>
-                        )}
+        // --- Render Catalyst Profile Graphs ---
+        function updateEnergyChart() {
+            const catalystType = document.getElementById('param-catalyst').value;
+            let peakHeight = 120; 
 
-                        {/* Ea Negative Arrow */}
-                        {type === 'negative' && (
-                            <>
-                                <line x1="270" y1="160" x2="270" y2="10" stroke="#9333ea" strokeWidth="1.5" markerEnd="url(#arrow-purple)" markerStart="url(#arrow-purple-start)" />
-                                <text x="280" y="85" textAnchor="start" fontSize="12" fontWeight="bold" fill="#9333ea">Ea (Negative)</text>
-                            </>
-                        )}
+            if (catalystType === 'positive') peakHeight = 85;  
+            if (catalystType === 'negative') peakHeight = 155; 
 
-                        {/* Delta H Arrow */}
-                        <line x1="430" y1="160" x2="430" y2="220" stroke="#10b981" strokeWidth="1.5" markerEnd="url(#arrow-green)" markerStart="url(#arrow-green-start)" />
-                        <text x="440" y="195" textAnchor="start" fontSize="12" fontWeight="bold" fill="#10b981">ΔH</text>
+            const labels = ['Reactants (N₂+3H₂)', 'Transition State', 'Products (2NH₃)'];
+            const dataData = [60, peakHeight, 30]; 
 
-                        <defs>
-                            <marker id="arrow-red" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                                <path d="M 0 0 L 6 3 L 0 6 z" fill="#ef4444" />
-                            </marker>
-                            <marker id="arrow-red-start" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto">
-                                <path d="M 6 0 L 0 3 L 6 6 z" fill="#ef4444" />
-                            </marker>
-                            <marker id="arrow-blue" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                                <path d="M 0 0 L 6 3 L 0 6 z" fill="#3b82f6" />
-                            </marker>
-                            <marker id="arrow-blue-start" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto">
-                                <path d="M 6 0 L 0 3 L 6 6 z" fill="#3b82f6" />
-                            </marker>
-                            <marker id="arrow-purple" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                                <path d="M 0 0 L 6 3 L 0 6 z" fill="#9333ea" />
-                            </marker>
-                            <marker id="arrow-purple-start" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto">
-                                <path d="M 6 0 L 0 3 L 6 6 z" fill="#9333ea" />
-                            </marker>
-                            <marker id="arrow-green" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                                <path d="M 0 0 L 6 3 L 0 6 z" fill="#10b981" />
-                            </marker>
-                            <marker id="arrow-green-start" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto">
-                                <path d="M 6 0 L 0 3 L 6 6 z" fill="#10b981" />
-                            </marker>
-                        </defs>
-                    </svg>
-                </div>
-            );
-        };
+            if (enChart) {
+                enChart.data.datasets[0].data = dataData;
+                enChart.update();
+            } else {
+                enChart = new Chart(energyCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Potential Energy Path',
+                            data: dataData,
+                            borderColor: '#9b59b6',
+                            backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                            fill: true,
+                            tension: 0.4, 
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { display: true, title: { display: true, text: 'Energy (kJ)' }, min: 0, max: 180 }
+                        }
+                    }
+                });
+            }
+        }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<EquilibriumLesson />);
+        // --- Sync DOM labels & update display output ---
+        function syncAndRefresh() {
+            document.getElementById('val-n2').innerText = document.getElementById('param-n2').value + ' cm³';
+            document.getElementById('val-h2').innerText = document.getElementById('param-h2').value + ' cm³';
+            document.getElementById('val-nh3').innerText = document.getElementById('param-nh3').value + ' cm³';
+            document.getElementById('val-pressure').innerText = document.getElementById('param-pressure').value + 'x';
+            document.getElementById('val-temp').innerText = (document.getElementById('param-temp').value > 0 ? '+' : '') + document.getElementById('param-temp').value + '°C';
+
+            updateEquilibriumChart();
+            updateEnergyChart();
+        }
+
+        // --- Reset Dashboard Function ---
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            document.getElementById('param-n2').value = 0;
+            document.getElementById('param-h2').value = 0;
+            document.getElementById('param-nh3').value = 0;
+            document.getElementById('param-pressure').value = 1.0;
+            document.getElementById('param-temp').value = 0;
+            document.getElementById('param-catalyst').value = 'none';
+            syncAndRefresh();
+        });
+
+        // --- Event Listeners hook ---
+        const controlIds = ['param-n2', 'param-h2', 'param-nh3', 'param-pressure', 'param-temp', 'param-catalyst'];
+        controlIds.forEach(id => {
+            document.getElementById(id).addEventListener('input', syncAndRefresh);
+            document.getElementById(id).addEventListener('change', syncAndRefresh);
+        });
+
+        // Initial launch run
+        syncAndRefresh();
     </script>
 </body>
 </html>
