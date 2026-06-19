@@ -118,7 +118,17 @@
         .species-h2 { color: var(--h2-color); font-weight: bold; }
         .species-nh3 { color: var(--nh3-color); font-weight: bold; }
 
-        canvas { background: #fff; max-height: 400px; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+
+        .energy-chart-container {
+            position: relative;
+            width: 100%;
+            height: 250px;
+        }
     </style>
 </head>
 <body>
@@ -190,15 +200,15 @@
         <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
             <div>
                 <h2>Dynamic Equilibrium Graph</h2>
-                <div style="position: relative; width: 100%;">
+                <div class="chart-container">
                     <canvas id="equilibriumChart"></canvas>
                 </div>
             </div>
 
             <div>
                 <h2>Energy Profile Path</h2>
-                <div style="position: relative; width: 100%;">
-                    <canvas id="energyChart" style="max-height: 180px;"></canvas>
+                <div class="energy-chart-container">
+                    <canvas id="energyChart"></canvas>
                 </div>
             </div>
         </div>
@@ -209,10 +219,10 @@
                 <strong>How to read the Spikes and Slopes at t=30s:</strong>
                 <ul>
                     <li><span class="species-n2">Blue Line = [N₂] (Initial: 20 cm³)</span>, <span class="species-h2">Red Line = [H₂] (Initial: 60 cm³)</span>, and <span class="species-nh3">Green Line = [NH₃] (Initial: 40 cm³)</span></li>
-                    <li><strong>Concentration Spikes:</strong> If you intentionally add a specific gas, you will see exactly <strong>one sharp vertical spike</strong> at t=30s for that species only. The line will then gradually re-equilibrate after the perturbation.</li>
-                    <li><strong>Pressure Spikes:</strong> If you increase pressure (or halve the volume), you will see <strong>three simultaneous upward spikes</strong> at t=30s because decreasing the volume increases all concentrations proportionally. Afterwards, the system shifts toward products (NH₃ increases further while N₂ and H₂ decrease).</li>
-                    <li><strong>Temperature Transitions:</strong> Adjusting the temperature causes <strong>zero vertical spikes</strong>. All three lines transition into smooth, steady curves starting from t=30s. Increasing temperature favors reactants (exothermic reverse reaction); decreasing temperature favors products.</li>
-                    <li><strong>Catalyst Impact:</strong> Changing the catalyst yields <strong>no changes</strong> on the concentration graph because a catalyst accelerates both forward and backward reactions equally, reaching equilibrium faster but at the same overall position.</li>
+                    <li><strong>Concentration Spikes:</strong> If you intentionally add a specific gas, you will see exactly <strong>one sharp vertical spike</strong> at t=30s for that species only. This represents the instant change in concentration.</li>
+                    <li><strong>Pressure Spikes:</strong> If you increase pressure (or halve the volume), you will see <strong>three simultaneous upward spikes</strong> at t=30s because decreasing the volume compresses all gases equally.</li>
+                    <li><strong>Temperature Transitions:</strong> Adjusting the temperature causes <strong>zero vertical spikes</strong>. All three lines transition into smooth, steady curves starting from t=30s.</li>
+                    <li><strong>Catalyst Impact:</strong> Changing the catalyst yields <strong>no changes</strong> on the concentration graph because a catalyst accelerates both forward and backward reactions equally.</li>
                 </ul>
             </div>
         </div>
@@ -309,16 +319,23 @@
                     data: {
                         labels: simData.labels,
                         datasets: [
-                            { label: '[N₂]', data: simData.dataN2, borderColor: '#3498db', borderWidth: 3, pointRadius: 0, fill: false },
-                            { label: '[H₂]', data: simData.dataH2, borderColor: '#e74c3c', borderWidth: 3, pointRadius: 0, fill: false },
-                            { label: '[NH₃]', data: simData.dataNH3, borderColor: '#2ecc71', borderWidth: 3, pointRadius: 0, fill: false }
+                            { label: '[N₂]', data: simData.dataN2, borderColor: '#3498db', borderWidth: 3, pointRadius: 0, fill: false, tension: 0 },
+                            { label: '[H₂]', data: simData.dataH2, borderColor: '#e74c3c', borderWidth: 3, pointRadius: 0, fill: false, tension: 0 },
+                            { label: '[NH₃]', data: simData.dataNH3, borderColor: '#2ecc71', borderWidth: 3, pointRadius: 0, fill: false, tension: 0 }
                         ]
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
                         scales: {
-                            x: { ticks: { display: true } },
-                            y: { min: 0, max: 150, ticks: { display: true } }
+                            x: { 
+                                ticks: { display: true }
+                            },
+                            y: { 
+                                min: 0, 
+                                max: 200,
+                                ticks: { display: true }
+                            }
                         },
                         plugins: {
                             legend: { position: 'top' }
@@ -359,6 +376,7 @@
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
                         scales: {
                             y: { display: true, min: 0, max: 180, ticks: { display: true } }
                         }
